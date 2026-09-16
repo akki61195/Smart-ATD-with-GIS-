@@ -1,0 +1,6 @@
+streamlit
+pandas
+requests
+streamlit-geolocation
+numpy
+Pillow
