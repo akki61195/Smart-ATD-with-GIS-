@@ -160,6 +160,103 @@ def get_nearest_structure_by_gps(current_lat, current_lon, df):
   return None, None, None
 
 
+# --- HIGH QUALITY PORTRAIT IMAGE GENERATOR FUNCTION ---
+def generate_portrait_atd_image(
+    title_str, curr_dt, area_text, struct_disp, L, theta_2, x_val, y_val
+):
+  width, height = 1000, 1350  # Portrait Mode Dimensions
+  img = Image.new("RGB", (width, height), color="#050a0f")
+  draw = ImageDraw.Draw(img)
+
+  # Load clear TrueType Fonts with graceful fallback
+  try:
+    font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 38)
+    font_header = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
+    font_body = ImageFont.truetype("DejaVuSans.ttf", 26)
+    font_bold = ImageFont.truetype("DejaVuSans-Bold.ttf", 26)
+    font_val = ImageFont.truetype("DejaVuSans-Bold.ttf", 42)
+  except:
+    try:
+      font_title = ImageFont.truetype("arialbd.ttf", 38)
+      font_header = ImageFont.truetype("arialbd.ttf", 28)
+      font_body = ImageFont.truetype("arial.ttf", 26)
+      font_bold = ImageFont.truetype("arialbd.ttf", 26)
+      font_val = ImageFont.truetype("arialbd.ttf", 42)
+    except:
+      font_title = (
+          font_header = font_body = font_bold = font_val = (
+              ImageFont.load_default()
+          )
+      )
+
+  # Outer Neon Border
+  draw.rectangle([25, 25, width - 25, height - 25], outline="#00d4ff", width=5)
+
+  # Title & Divider Line
+  draw.text((50, 50), title_str, fill="#00d4ff", font=font_title)
+  draw.line([(50, 110), (width - 50, 110)], fill="#00d4ff", width=3)
+
+  # Compact Information Rows
+  lines_data = [
+      ("📅 Date & Time:", curr_dt),
+      (
+          "📍 Location / Section:",
+          area_text[:45] + ("..." if len(area_text) > 45 else ""),
+      ),
+      ("🏗️ Structure No:", str(struct_disp)),
+      ("📏 Tension Length (L):", f"{L} m"),
+      ("🌡️ Temperature:", f"{theta_2} °C"),
+  ]
+
+  y_off = 150
+  for label, val in lines_data:
+    draw.text((50, y_off), label, fill="#00d4ff", font=font_bold)
+    draw.text((360, y_off), str(val), fill="#ffffff", font=font_body)
+    y_off += 65  # Compact spacing
+
+  # Results Box (X & Y values)
+  box_top = y_off + 20
+  box_bottom = box_top + 320
+  draw.rectangle(
+      [50, box_top, width - 50, box_bottom],
+      fill="#1c2128",
+      outline="#00ff41",
+      width=4,
+  )
+
+  draw.text(
+      (80, box_top + 35),
+      "Calculated X Value (Pulley Gap):",
+      fill="#ffffff",
+      font=font_header,
+  )
+  draw.text(
+      (80, box_top + 80), f"{x_val:.1f} mm", fill="#00ff41", font=font_val
+  )
+
+  draw.text(
+      (80, box_top + 165),
+      "Calculated Y Value (Weight Height):",
+      fill="#ffffff",
+      font=font_header,
+  )
+  draw.text(
+      (80, box_top + 210), f"{y_val:.1f} mm", fill="#00ff41", font=font_val
+  )
+
+  # Footer Credit inside image
+  draw.text(
+      (width / 2 - 240, height - 60),
+      "DEVELOPED BY: A.K.MULCHANDANI JE/TRD",
+      fill="#aaaaaa",
+      font=font_body,
+  )
+
+  buf = io.BytesIO()
+  img.save(buf, format="PNG")
+  return buf.getvalue()
+
+
 ist_offset = timezone(timedelta(hours=5, minutes=30))
 
 # ==========================================
@@ -256,65 +353,21 @@ if app_mode == "Manual Mode (Standard)":
   c1.metric("X (Pulley Gap)", f"{round(x_val, 1)} mm")
   c2.metric("Y (Weight Height)", f"{round(y_val, 1)} mm")
 
-  # Image Generation for Manual Mode
+  # Generate Portrait Image for Manual Mode
   curr_dt = datetime.now(ist_offset).strftime("%d-%b-%Y %I:%M:%S %p")
   struct_disp = (
       selected_struct if "selected_struct" in locals() else "Manual Entry"
   )
-
-  scale = 3
-  width, height = 900 * scale, 550 * scale
-  img = Image.new("RGB", (width, height), color="#050a0f")
-  draw = ImageDraw.Draw(img)
-  font_title = font_body = font_val = ImageFont.load_default()
-
-  draw.rectangle(
-      [20 * scale, 20 * scale, width - 20 * scale, height - 20 * scale],
-      outline="#00d4ff",
-      width=5 * scale,
+  img_bytes = generate_portrait_atd_image(
+      "⚡ OHE ATD SMART RECORD",
+      curr_dt,
+      st.session_state.m_area,
+      struct_disp,
+      L,
+      theta_2,
+      x_val,
+      y_val,
   )
-  draw.text(
-      (40 * scale, 40 * scale),
-      "⚡ OHE ATD SMART TOOL RECORD",
-      fill="#00d4ff",
-  )
-  draw.line(
-      [(40 * scale, 100 * scale), (width - 40 * scale, 100 * scale)],
-      fill="#00d4ff",
-      width=3 * scale,
-  )
-
-  lines = [
-      f"📅 Date & Time: {curr_dt}",
-      f"📍 Location / Section: {st.session_state.m_area[:40]}",
-      f"🏗️ Structure No: {struct_disp}",
-      f"📏 Tension Length (L): {L} m",
-      f"🌡️ Temperature: {theta_2} °C",
-  ]
-  y_off = 120 * scale
-  for line in lines:
-    draw.text((40 * scale, y_off), line, fill="#ffffff")
-    y_off += 42 * scale
-
-  draw.rectangle(
-      [40 * scale, 360 * scale, width - 40 * scale, 500 * scale],
-      fill="#1c2128",
-      outline="#00ff41",
-      width=4 * scale,
-  )
-  draw.text(
-      (60 * scale, 380 * scale),
-      f"Calculated X Value : {x_val:.0f} mm",
-      fill="#00ff41",
-  )
-  draw.text(
-      (60 * scale, 435 * scale),
-      f"Calculated Y Value : {y_val:.0f} mm",
-      fill="#00ff41",
-  )
-
-  buf = io.BytesIO()
-  img.save(buf, format="PNG")
 
 
   def notify_save_m():
@@ -323,7 +376,7 @@ if app_mode == "Manual Mode (Standard)":
 
   st.download_button(
       label="💾 SAVE IMG",
-      data=buf.getvalue(),
+      data=img_bytes,
       file_name=f"ATD_Manual_{datetime.now(ist_offset).strftime('%Y%m%d_%H%M%S')}.png",
       mime="image/png",
       on_click=notify_save_m,
@@ -474,61 +527,18 @@ else:
   c1.metric("X (Pulley Gap)", f"{round(x_val, 1)} mm")
   c2.metric("Y (Weight Height)", f"{round(y_val, 1)} mm")
 
-  # Image Generation for GIS Mode
+  # Generate Portrait Image for GIS Mode
   curr_dt = datetime.now(ist_offset).strftime("%d-%b-%Y %I:%M:%S %p")
-  scale = 3
-  width, height = 900 * scale, 550 * scale
-  img = Image.new("RGB", (width, height), color="#050a0f")
-  draw = ImageDraw.Draw(img)
-  font_title = font_body = font_val = ImageFont.load_default()
-
-  draw.rectangle(
-      [20 * scale, 20 * scale, width - 20 * scale, height - 20 * scale],
-      outline="#00d4ff",
-      width=5 * scale,
-  )
-  draw.text(
-      (40 * scale, 40 * scale),
+  img_bytes_g = generate_portrait_atd_image(
       "⚡ OHE ATD GIS SMART RECORD",
-      fill="#00d4ff",
+      curr_dt,
+      st.session_state.g_area,
+      selected_struct_disp,
+      L,
+      theta_2,
+      x_val,
+      y_val,
   )
-  draw.line(
-      [(40 * scale, 100 * scale), (width - 40 * scale, 100 * scale)],
-      fill="#00d4ff",
-      width=3 * scale,
-  )
-
-  lines = [
-      f"📅 Date & Time: {curr_dt}",
-      f"📍 Location / Section: {st.session_state.g_area[:40]}",
-      f"🏗️ Structure No: {selected_struct_disp}",
-      f"📏 Tension Length (L): {L} m",
-      f"🌡️ Temperature: {theta_2} °C",
-  ]
-  y_off = 120 * scale
-  for line in lines:
-    draw.text((40 * scale, y_off), line, fill="#ffffff")
-    y_off += 42 * scale
-
-  draw.rectangle(
-      [40 * scale, 360 * scale, width - 40 * scale, 500 * scale],
-      fill="#1c2128",
-      outline="#00ff41",
-      width=4 * scale,
-  )
-  draw.text(
-      (60 * scale, 380 * scale),
-      f"Calculated X Value : {x_val:.0f} mm",
-      fill="#00ff41",
-  )
-  draw.text(
-      (60 * scale, 435 * scale),
-      f"Calculated Y Value : {y_val:.0f} mm",
-      fill="#00ff41",
-  )
-
-  buf = io.BytesIO()
-  img.save(buf, format="PNG")
 
 
   def notify_save_g():
@@ -537,7 +547,7 @@ else:
 
   st.download_button(
       label="💾 SAVE GIS IMG",
-      data=buf.getvalue(),
+      data=img_bytes_g,
       file_name=f"ATD_GIS_{datetime.now(ist_offset).strftime('%Y%m%d_%H%M%S')}.png",
       mime="image/png",
       on_click=notify_save_g,
