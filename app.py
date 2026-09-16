@@ -2,12 +2,12 @@ from datetime import datetime, timezone, timedelta
 import io
 import numpy as np
 import pandas as pd
-import requests
 from PIL import Image, ImageDraw, ImageFont
+import requests
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
 
-# --- 1. PAGE SETUP ---
+# --- 1. PAGE SETUP & HIGH CONTRAST CSS ---
 st.set_page_config(
     page_title="OHE ATD Smart Tool (Dual Mode)", page_icon="⚡", layout="centered"
 )
@@ -16,6 +16,25 @@ st.markdown(
     """
     <style>
     .stApp { background-color: #050a0f; color: white; }
+    
+    /* Make all labels, radios, checkboxes, and text bright white */
+    label, .stRadio label, .stCheckbox label, p, span {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Bright Metric Titles and Values */
+    [data-testid="stMetricLabel"] {
+        color: #00d4ff !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: #00ff41 !important;
+        font-size: 26px !important;
+        font-weight: bold !important;
+    }
+
     .area-box { 
         padding: 15px; 
         background-color: #1c2128; 
@@ -26,6 +45,7 @@ st.markdown(
     }
     .area-label { color: #00d4ff; font-size: 14px; margin-bottom: 2px; font-weight: bold; }
     .area-text { font-size: 18px; font-weight: bold; color: #ffffff; }
+    
     .length-display {
         font-size: 24px !important;
         font-weight: bold;
@@ -36,6 +56,7 @@ st.markdown(
         border-left: 8px solid #00ff41;
         margin: 10px 0px;
     }
+    
     .stButton>button {
         background-color: #00d4ff !important;
         color: black !important;
@@ -43,6 +64,28 @@ st.markdown(
         width: 100% !important;
         height: 3.5em !important;
         border-radius: 10px;
+    }
+
+    /* Save Button Styling: Black Background with Accent Line Color Text/Border */
+    div[data-testid="stDownloadButton"] {
+        display: flex;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    div[data-testid="stDownloadButton"] > button {
+        background-color: #000000 !important;
+        color: #00d4ff !important;
+        border: 2px solid #00d4ff !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+        width: 240px !important;
+        height: 50px !important;
+        border-radius: 8px !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        background-color: #1c2128 !important;
+        color: #ffffff !important;
+        border-color: #00ff41 !important;
     }
     </style>
     """,
@@ -172,7 +215,7 @@ if app_mode == "Manual Mode (Standard)":
 
   if manual_loc:
     city_input = st.text_input("Enter City Name", value="Kodinar")
-    if st.button("🔍 FETCH TEMP FOR THIS city"):
+    if st.button("🔍 FETCH TEMP FOR THIS CITY"):
       with st.spinner("Fetching data..."):
         t, a = get_manual_city_data(city_input)
         st.session_state.m_temp = t
