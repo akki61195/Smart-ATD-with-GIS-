@@ -384,7 +384,7 @@ if app_mode == "Manual Mode (Standard)":
 
 
 # ==========================================
-# B) GIS MODE (Naya Code + Naya Sheet GIS)
+# B) GIS MODE (Clean Auto-Sync Version)
 # ==========================================
 else:
   NEW_SHEET_ID = "1VYubXUbniIrCNZlybPQD8lC71SS2wBYlR-kF_EtD5IY"
@@ -410,101 +410,93 @@ else:
   if "g_area" not in st.session_state:
     st.session_state.g_area = "GPS Not Active"
   if "g_struct" not in st.session_state:
-    st.session_state.g_struct = None
+    st.session_state.g_struct = "Not Detected"
   if "g_length" not in st.session_state:
     st.session_state.g_length = 750.0
 
-  manual_loc_g = st.checkbox(
-      "✍️ Enter Location & Structure Manually", key="g_check"
-  )
+  # Automatic Geolocation Fetch
+  location_g = streamlit_geolocation()
 
-  if manual_loc_g:
-    city_input_g = st.text_input("Enter City Name", value="Rajkot", key="g_c")
-    if st.button("🔍 FETCH TEMP FOR THIS CITY"):
-      with st.spinner("Fetching data..."):
-        t, a = get_manual_city_data(city_input_g)
-        st.session_state.g_temp = t
-        st.session_state.g_area = a
+  # Single Clean Auto-Sync Button
+  if st.button("🚀 AUTO-SYNC STRUCTURE, WEATHER & GPS"):
+    if location_g and location_g.get("latitude"):
+      cur_lat = location_g["latitude"]
+      cur_lon = location_g["longitude"]
+      with st.spinner("Syncing GIS Data & Nearest Structure..."):
+        # 1. Weather
+        st.session_state.g_temp = get_weather_by_coords(cur_lat, cur_lon)
 
+        # 2. Area Name via Reverse Geocoding
+        g_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={cur_lat}&lon={cur_lon}"
+        g_res = requests.get(
+            g_url, headers={"User-Agent": "RailwayTool"}, timeout=5
+        ).json()
+        st.session_state.g_area = g_res.get("display_name", "Local Section")
+
+        # 3. Nearest Structure Matching
+        matched_struct, matched_len, dist = get_nearest_structure_by_gps(
+            cur_lat, cur_lon, df_gis
+        )
+        if matched_struct:
+          st.session_state.g_struct = matched_struct
+          st.session_state.g_length = float(matched_len)
+          st.success(
+              f"🎯 Auto-Detected Structure: **{matched_struct}** (Distance:"
+              f" {dist}m)"
+          )
+        else:
+          st.warning(
+              "⚠️ 150m ke daayre mein koi structure nahi mila. Neeche se"
+              " manually select karein."
+          )
+          st.session_state.g_struct = "Not Found"
+    else:
+      st.error(
+          "⚠️ GPS location not available. Please allow location access in your"
+          " browser."
+      )
+
+  # Display Structure and Tension Length
+  if (
+      st.session_state.g_struct
+      and st.session_state.g_struct not in ["Not Found", "Not Detected", None]
+  ):
+    selected_struct_disp = st.session_state.g_struct
+    L = st.session_state.g_length
+    st.markdown(
+        f"<div class='length-display'>Structure: {selected_struct_disp} |"
+        f" Tension Length (L): {L} m</div>",
+        unsafe_allow_html=True,
+    )
+  else:
     if df_gis is not None:
       struct_list_g = df_gis["Structure_No"].dropna().unique().tolist()
       selected_struct_g = st.selectbox(
-          "📍 Select Structure No Manually",
-          ["Manual Entry"] + struct_list_g,
-          key="g_sel",
+          "📍 Select Structure Manually (Fallback)",
+          ["Select Structure"] + struct_list_g,
+          key="g_sel_fallback",
       )
-      if selected_struct_g != "Manual Entry":
+      if selected_struct_g != "Select Structure":
         L = float(
             df_gis[df_gis["Structure_No"] == selected_struct_g][
                 "Tension_Length"
             ].values[0]
         )
+        selected_struct_disp = selected_struct_g
         st.markdown(
             f"<div class='length-display'>Tension Length (L): {L} m</div>",
             unsafe_allow_html=True,
         )
       else:
-        L = st.number_input(
-            "Enter Tension Length (L) manually", value=750.0, key="g_l_man"
-        )
+        L = 750.0
+        selected_struct_disp = "Not Selected"
     else:
-      L = st.number_input("Enter Tension Length (L) manually", value=750.0)
-    selected_struct_disp = (
-        selected_struct_g if "selected_struct_g" in locals() else "Manual"
-    )
-
-  else:
-    st.write("🛰️ GIS GPS Mode (Auto-Detect Structure & Temp)")
-    location_g = streamlit_geolocation()
-
-    if location_g and location_g.get("latitude"):
-      cur_lat = location_g["latitude"]
-      cur_lon = location_g["longitude"]
-
-      if st.button("🚀 SYNC GPS, WEATHER & NEAREST STRUCTURE"):
-        with st.spinner("Syncing GIS Data..."):
-          st.session_state.g_temp = get_weather_by_coords(cur_lat, cur_lon)
-          g_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={cur_lat}&lon={cur_lon}"
-          g_res = requests.get(
-              g_url, headers={"User-Agent": "RailwayTool"}, timeout=5
-          ).json()
-          st.session_state.g_area = g_res.get("display_name", "Local Section")
-
-          matched_struct, matched_len, dist = get_nearest_structure_by_gps(
-              cur_lat, cur_lon, df_gis
-          )
-          if matched_struct:
-            st.session_state.g_struct = matched_struct
-            st.session_state.g_length = float(matched_len)
-            st.success(
-                f"🎯 Auto-Detected Nearest Structure: **{matched_struct}**"
-                f" (Distance: {dist}m)"
-            )
-          else:
-            st.warning(
-                "⚠️ 150m ke daayre mein koi structure nahi mila. Manual select"
-                " karein."
-            )
-            st.session_state.g_struct = "Not Found"
-
-    if st.session_state.g_struct and st.session_state.g_struct not in [
-        "Not Found",
-        None,
-    ]:
-      selected_struct_disp = st.session_state.g_struct
-      L = st.session_state.g_length
-      st.markdown(
-          f"<div class='length-display'>Auto-Fetched Structure:"
-          f" {selected_struct_disp} | Tension Length (L): {L} m</div>",
-          unsafe_allow_html=True,
-      )
-    else:
-      selected_struct_disp = "GIS GPS Active (No Structure Matched)"
       L = st.number_input(
           "Enter Tension Length (L) manually",
           value=st.session_state.g_length,
           key="g_l_fallback",
       )
+      selected_struct_disp = "Manual"
 
   st.markdown(
       f"""
