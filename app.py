@@ -151,7 +151,7 @@ def get_nearest_structure_by_gps(current_lat, current_lon, df):
   distance_meters = 6367 * c * 1000
   min_idx = distance_meters.idxmin()
   nearest_dist = distance_meters[min_idx]
-  if nearest_dist <= 150:
+  if nearest_dist <= 50:  # Updated to 50 meters range
     return (
         df.loc[min_idx, "Structure_No"],
         df.loc[min_idx, "Tension_Length"],
@@ -160,28 +160,29 @@ def get_nearest_structure_by_gps(current_lat, current_lon, df):
   return None, None, None
 
 
-# --- HIGH QUALITY PORTRAIT IMAGE GENERATOR FUNCTION ---
+# --- HIGH QUALITY HD PORTRAIT IMAGE GENERATOR FUNCTION (2X SCALE) ---
 def generate_portrait_atd_image(
     title_str, curr_dt, area_text, struct_disp, L, theta_2, x_val, y_val
 ):
-  width, height = 1000, 1350  # Portrait Mode Dimensions
+  scale = 2  # 2X scaling for crisp high-definition image quality
+  width, height = 1000 * scale, 1350 * scale
   img = Image.new("RGB", (width, height), color="#050a0f")
   draw = ImageDraw.Draw(img)
 
-  # Load clear TrueType Fonts with graceful fallback
+  # Load scaled TrueType Fonts with graceful fallback
   try:
-    font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 38)
-    font_header = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
-    font_body = ImageFont.truetype("DejaVuSans.ttf", 26)
-    font_bold = ImageFont.truetype("DejaVuSans-Bold.ttf", 26)
-    font_val = ImageFont.truetype("DejaVuSans-Bold.ttf", 42)
+    font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 38 * scale)
+    font_header = ImageFont.truetype("DejaVuSans-Bold.ttf", 28 * scale)
+    font_body = ImageFont.truetype("DejaVuSans.ttf", 26 * scale)
+    font_bold = ImageFont.truetype("DejaVuSans-Bold.ttf", 26 * scale)
+    font_val = ImageFont.truetype("DejaVuSans-Bold.ttf", 42 * scale)
   except:
     try:
-      font_title = ImageFont.truetype("arialbd.ttf", 38)
-      font_header = ImageFont.truetype("arialbd.ttf", 28)
-      font_body = ImageFont.truetype("arial.ttf", 26)
-      font_bold = ImageFont.truetype("arialbd.ttf", 26)
-      font_val = ImageFont.truetype("arialbd.ttf", 42)
+      font_title = ImageFont.truetype("arialbd.ttf", 38 * scale)
+      font_header = ImageFont.truetype("arialbd.ttf", 28 * scale)
+      font_body = ImageFont.truetype("arial.ttf", 26 * scale)
+      font_bold = ImageFont.truetype("arialbd.ttf", 26 * scale)
+      font_val = ImageFont.truetype("arialbd.ttf", 42 * scale)
     except:
       font_title = ImageFont.load_default()
       font_header = ImageFont.load_default()
@@ -190,11 +191,19 @@ def generate_portrait_atd_image(
       font_val = ImageFont.load_default()
 
   # Outer Neon Border
-  draw.rectangle([25, 25, width - 25, height - 25], outline="#00d4ff", width=5)
+  draw.rectangle(
+      [25 * scale, 25 * scale, width - 25 * scale, height - 25 * scale],
+      outline="#00d4ff",
+      width=5 * scale,
+  )
 
   # Title & Divider Line
-  draw.text((50, 50), title_str, fill="#00d4ff", font=font_title)
-  draw.line([(50, 110), (width - 50, 110)], fill="#00d4ff", width=3)
+  draw.text((50 * scale, 50 * scale), title_str, fill="#00d4ff", font=font_title)
+  draw.line(
+      [(50 * scale, 110 * scale), (width - 50 * scale, 110 * scale)],
+      fill="#00d4ff",
+      width=3 * scale,
+  )
 
   # Compact Information Rows
   lines_data = [
@@ -208,45 +217,51 @@ def generate_portrait_atd_image(
       ("🌡️ Temperature:", f"{theta_2} °C"),
   ]
 
-  y_off = 150
+  y_off = 150 * scale
   for label, val in lines_data:
-    draw.text((50, y_off), label, fill="#00d4ff", font=font_bold)
-    draw.text((360, y_off), str(val), fill="#ffffff", font=font_body)
-    y_off += 65  # Compact spacing
+    draw.text((50 * scale, y_off), label, fill="#00d4ff", font=font_bold)
+    draw.text((360 * scale, y_off), str(val), fill="#ffffff", font=font_body)
+    y_off += 65 * scale  # Compact spacing
 
   # Results Box (X & Y values)
-  box_top = y_off + 20
-  box_bottom = box_top + 320
+  box_top = y_off + 20 * scale
+  box_bottom = box_top + 320 * scale
   draw.rectangle(
-      [50, box_top, width - 50, box_bottom],
+      [50 * scale, box_top, width - 50 * scale, box_bottom],
       fill="#1c2128",
       outline="#00ff41",
-      width=4,
+      width=4 * scale,
   )
 
   draw.text(
-      (80, box_top + 35),
+      (80 * scale, box_top + 35 * scale),
       "Calculated X Value (Pulley Gap):",
       fill="#ffffff",
       font=font_header,
   )
   draw.text(
-      (80, box_top + 80), f"{x_val:.1f} mm", fill="#00ff41", font=font_val
+      (80 * scale, box_top + 80 * scale),
+      f"{x_val:.1f} mm",
+      fill="#00ff41",
+      font=font_val,
   )
 
   draw.text(
-      (80, box_top + 165),
+      (80 * scale, box_top + 165 * scale),
       "Calculated Y Value (Weight Height):",
       fill="#ffffff",
       font=font_header,
   )
   draw.text(
-      (80, box_top + 210), f"{y_val:.1f} mm", fill="#00ff41", font=font_val
+      (80 * scale, box_top + 210 * scale),
+      f"{y_val:.1f} mm",
+      fill="#00ff41",
+      font=font_val,
   )
 
   # Footer Credit inside image
   draw.text(
-      (width / 2 - 240, height - 60),
+      (width / 2 - 240 * scale, height - 60 * scale),
       "DEVELOPED BY: A.K.MULCHANDANI JE/TRD",
       fill="#aaaaaa",
       font=font_body,
@@ -422,7 +437,7 @@ else:
     if location_g and location_g.get("latitude"):
       cur_lat = location_g["latitude"]
       cur_lon = location_g["longitude"]
-      with st.spinner("Syncing GIS Data & Nearest Structure..."):
+      with st.spinner("Syncing GIS Data & Nearest Structure (50m range)..."):
         # 1. Weather
         st.session_state.g_temp = get_weather_by_coords(cur_lat, cur_lon)
 
@@ -433,7 +448,7 @@ else:
         ).json()
         st.session_state.g_area = g_res.get("display_name", "Local Section")
 
-        # 3. Nearest Structure Matching
+        # 3. Nearest Structure Matching (50m threshold)
         matched_struct, matched_len, dist = get_nearest_structure_by_gps(
             cur_lat, cur_lon, df_gis
         )
@@ -446,7 +461,7 @@ else:
           )
         else:
           st.warning(
-              "⚠️ 150m ke daayre mein koi structure nahi mila. Neeche se"
+              "⚠️ 50m ke daayre mein koi structure nahi mila. Neeche se"
               " manually select karein."
           )
           st.session_state.g_struct = "Not Found"
@@ -519,7 +534,7 @@ else:
   c1.metric("X (Pulley Gap)", f"{round(x_val, 1)} mm")
   c2.metric("Y (Weight Height)", f"{round(y_val, 1)} mm")
 
-  # Generate Portrait Image for GIS Mode
+  # Generate High-Resolution Portrait Image for GIS Mode
   curr_dt = datetime.now(ist_offset).strftime("%d-%b-%Y %I:%M:%S %p")
   img_bytes_g = generate_portrait_atd_image(
       "⚡ OHE ATD GIS SMART RECORD",
@@ -534,7 +549,7 @@ else:
 
 
   def notify_save_g():
-    st.toast("✅ GIS Image Saved Successfully!", icon="💾")
+    st.toast("✅ HD GIS Image Saved Successfully!", icon="💾")
 
 
   st.download_button(
