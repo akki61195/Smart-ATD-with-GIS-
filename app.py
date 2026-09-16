@@ -183,11 +183,11 @@ def generate_portrait_atd_image(
       font_bold = ImageFont.truetype("arialbd.ttf", 26)
       font_val = ImageFont.truetype("arialbd.ttf", 42)
     except:
-      font_title = (
-          font_header = font_body = font_bold = font_val = (
-              ImageFont.load_default()
-          )
-      )
+      font_title = ImageFont.load_default()
+      font_header = ImageFont.load_default()
+      font_body = ImageFont.load_default()
+      font_bold = ImageFont.load_default()
+      font_val = ImageFont.load_default()
 
   # Outer Neon Border
   draw.rectangle([25, 25, width - 25, height - 25], outline="#00d4ff", width=5)
